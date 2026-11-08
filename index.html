@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Juego pedagógico de Cálculo Diferencial: razón de cambio, recta tangente, segunda derivada y optimización.">
+<title>Misión Tangente</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: consola de cabina CRT — visor de radar a la izquierda, terminal de mando a la derecha; se apila en móvil. Tema oscuro único, deliberado. */
+:root{
+  --bg:#05080a; --panel:#08110d; --panel2:#0c1a13; --line:#1d4a33; --line2:#2c6b4a;
+  --fg:#bff5d6; --muted:#6fae8c; --phos:#4cff9a; --amber:#ffb000; --bad:#ff5a4f; --ok:#4cff9a;
+  --display:"VT323", "Lucida Console", monospace;
+  --pixel:"Press Start 2P", "Lucida Console", monospace;
+  --body:"IBM Plex Mono", Consolas, "Courier New", monospace;
+  --glow:0 0 6px rgba(76,255,154,.55);
+  --glow-a:0 0 6px rgba(255,176,0,.55);
+  color-scheme: dark;
+}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--body);font-size:15px;line-height:1.6;min-height:100%;
+  background:radial-gradient(ellipse at 50% 30%, #0b1a12 0%, var(--bg) 70%) fixed, var(--bg)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.22) 3px, rgba(0,0,0,0) 4px);
+  box-shadow:inset 0 0 140px rgba(0,0,0,.75)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+::selection{background:var(--phos);color:var(--bg)}
+.app{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:20px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;border-bottom:1px dashed var(--line2);padding-bottom:14px}
+.brand{font-family:var(--pixel);font-size:.95rem;color:var(--phos);text-shadow:var(--glow);display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;line-height:1.4}
+.brand small{font-family:var(--display);font-size:1.15rem;color:var(--muted);text-shadow:none}
+.hud{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center}
+.hud .k{color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-size:.68rem;display:block}
+.hud b{font-family:var(--display);font-weight:400;font-size:1.7rem;line-height:1;color:var(--phos);text-shadow:var(--glow);font-variant-numeric:tabular-nums}
+.fuel{width:180px;height:14px;border:1px solid var(--amber);padding:2px;margin-top:4px;display:flex}
+.fuel i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--amber) 0 7px,transparent 7px 9px);box-shadow:var(--glow-a);transition:width .4s steps(10)}
+.fuel.low{border-color:var(--bad)}
+.fuel.low i{background:repeating-linear-gradient(90deg,var(--bad) 0 7px,transparent 7px 9px)}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0;line-height:1.05;color:var(--phos);text-shadow:var(--glow)}
+h1{font-size:clamp(2.6rem,6.5vw,4.4rem)}
+h2{font-size:2.1rem}
+h3{font-size:1.35rem;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);text-shadow:var(--glow-a)}
+p{margin:0}
+b{color:#e6fff0}
+.eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.14em;color:var(--amber)}
+.eyebrow::before{content:"> "}
+.fx{font-family:var(--body);font-size:.95em;color:var(--phos);background:var(--panel2);border:1px solid var(--line2);padding:0 6px;white-space:nowrap}
+.muted{color:var(--muted)}
+
+/* Intro */
+.intro{display:grid;grid-template-columns:1.2fr 1fr;gap:28px}
+.intro > *{min-width:0}
+.lede{display:flex;flex-direction:column;gap:16px}
+.lede p{max-width:62ch}
+.blink{animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.route{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;counter-reset:r}
+.route li{position:relative;padding:7px 0 7px 46px;display:flex;flex-direction:column;border-left:1px dashed var(--line2);margin-left:14px;counter-increment:r}
+.route li::before{content:"0" counter(r);position:absolute;left:-15px;top:8px;width:30px;height:24px;display:grid;place-items:center;font-family:var(--display);font-size:1.25rem;color:var(--bg);background:var(--phos);box-shadow:var(--glow)}
+.route li:last-child::before{background:var(--amber);box-shadow:var(--glow-a)}
+.route b{font-family:var(--display);font-weight:400;font-size:1.45rem;line-height:1.1;color:var(--fg)}
+.route span{font-size:.82rem;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line2);padding:20px;display:flex;flex-direction:column;gap:14px;position:relative}
+.card::before{content:"[ REGISTRO DE TRIPULACIÓN ]";position:absolute;top:-9px;left:14px;background:var(--bg);padding:0 6px;font-size:.68rem;letter-spacing:.1em;color:var(--muted)}
+.rules{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:.86rem}
+.rules li{padding-left:18px;position:relative}
+.rules li::before{content:"▸";position:absolute;left:0;color:var(--amber)}
+.crew{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:flex;flex-direction:column;gap:4px}
+input[type=text]{font:inherit;font-family:var(--display);font-size:1.45rem;line-height:1.1;text-transform:none;letter-spacing:.02em;color:var(--phos);text-shadow:var(--glow);background:#020604;border:1px solid var(--line2);border-radius:0;padding:6px 10px;width:100%;caret-color:var(--amber)}
+input[type=text]::placeholder{color:#2f6248;text-shadow:none}
+input[type=text]:focus{outline:none;border-color:var(--phos);box-shadow:0 0 0 1px var(--phos), var(--glow)}
+button{font-family:var(--display);font-size:1.45rem;line-height:1;letter-spacing:.06em;text-transform:uppercase;border-radius:0;padding:9px 18px 8px;cursor:pointer;border:1px solid transparent}
+button:focus-visible{outline:2px dashed var(--amber);outline-offset:3px}
+.primary{background:var(--phos);color:var(--bg);box-shadow:var(--glow)}
+.primary::before{content:"▶ "}
+.primary:hover{background:#8dffc0}
+.ghost{background:transparent;color:var(--amber);border-color:var(--amber)}
+.ghost:hover{background:rgba(255,176,0,.1)}
+button:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+
+/* Juego */
+.game{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
+.stage{display:flex;flex-direction:column;gap:8px;position:sticky;top:12px}
+canvas{width:100%;aspect-ratio:4/3;display:block;border:1px solid var(--line2);background:#020604;box-shadow:0 0 0 4px #030705, 0 0 0 5px var(--line), 0 0 30px rgba(76,255,154,.08)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.74rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:16px;height:3px;display:inline-block}
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.turn{font-size:.85rem;color:var(--muted)}
+.turn b{color:var(--amber)}
+.question{background:var(--panel);border:1px solid var(--line2);border-left:4px solid var(--amber);padding:12px 16px;color:#e6fff0;font-weight:600}
+.answer{display:flex;flex-direction:column;gap:12px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.msg{padding:8px 14px;font-size:.88rem;border:1px solid}
+.msg.bad{border-color:var(--bad);color:var(--bad);background:rgba(255,90,79,.07)}
+.msg.bad::before{content:"!! "}
+.msg.ok{border-color:var(--ok);color:var(--ok);background:rgba(76,255,154,.06);text-shadow:var(--glow)}
+.msg.ok::before{content:"OK › "}
+.msg.info{border-color:var(--line2);color:var(--muted)}
+.box{border-left:2px solid var(--phos);padding:2px 0 2px 14px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.box.dec{border-left-color:var(--amber)}
+.box h3{font-size:1.2rem}
+.box:not(.dec) h3{color:var(--phos);text-shadow:var(--glow)}
+details{font-size:.85rem;color:var(--muted)}
+summary{cursor:pointer;font-size:.74rem;text-transform:uppercase;letter-spacing:.08em}
+
+/* Final */
+.end{display:flex;flex-direction:column;gap:20px}
+.rank{font-family:var(--pixel);font-size:clamp(.95rem,2.6vw,1.35rem);line-height:1.5;color:var(--amber);text-shadow:var(--glow-a)}
+.totals{display:flex;flex-wrap:wrap;gap:12px 36px}
+.totals div{display:flex;flex-direction:column}
+.totals .k{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em}
+.totals b{font-family:var(--display);font-weight:400;font-size:2.6rem;line-height:1;color:var(--phos);text-shadow:var(--glow);font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;border:1px solid var(--line2)}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:620px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px dashed var(--line)}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);background:var(--panel)}
+td.n{font-variant-numeric:tabular-nums;text-align:right;color:var(--phos)}
+tr:last-child td{border-bottom:0}
+
+@media (max-width: 860px){
+  .intro,.game{grid-template-columns:1fr}
+  .stage{position:static}
+  .crew{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){ .fuel i{transition:none} .blink{animation:none} }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">Misión Tangente <small>nave Leibniz-1 · rumbo a Kepler-Δ</small></div>
+    <div class="hud" id="hud" hidden>
+      <div><span class="k">Fase</span><b id="hud-phase">1 / 5</b></div>
+      <div><span class="k">Puntos</span><b id="hud-score">0</b></div>
+      <div><span class="k">Combustible <span id="hud-fuel-n">100</span>%</span><div class="fuel" id="fuel"><i id="fuel-bar" style="width:100%"></i></div></div>
+    </div>
+  </header>
+
+  <!-- INTRO -->
+  <section class="intro" id="intro">
+    <div class="lede">
+      <p class="eyebrow">Cálculo Diferencial · Aprendizaje Basado en Juegos</p>
+      <h1>La computadora de navegación se apagó<span class="blink" aria-hidden="true">_</span></h1>
+      <p>La nave <i>Leibniz-1</i> debe llevar a su tripulación desde la base Cauchy hasta la luna Kepler-Δ. Una tormenta solar dañó el computador de vuelo y ahora cada maniobra se calcula a mano. Velocidades, trayectorias y consumo dependen de una sola herramienta: <b>la derivada</b>.</p>
+      <h3>Ruta de la misión</h3>
+      <ol class="route">
+        <li><b>Despegue</b><span>Razón de cambio promedio · pendiente de la recta secante</span></li>
+        <li><b>Ventana de órbita</b><span>Derivada como velocidad instantánea</span></li>
+        <li><b>Acoplamiento con la estación Euler</b><span>Ecuación de la recta tangente</span></li>
+        <li><b>Cinturón de asteroides</b><span>Segunda derivada · aceleración</span></li>
+        <li><b>Aterrizaje en Kepler-Δ</b><span>Optimización · mínimo de una función</span></li>
+      </ol>
+    </div>
+    <form class="card" id="crew-form">
+      <h2>Tripulación</h2>
+      <p class="muted" style="font-size:.9rem">Cada integrante dirige una fase. La fase final la resuelve todo el equipo.</p>
+      <div class="crew">
+        <label for="crew-0">Propulsión<input type="text" id="crew-0" placeholder="Tripulante 1" autocomplete="off"></label>
+        <label for="crew-1">Navegación<input type="text" id="crew-1" placeholder="Tripulante 2" autocomplete="off"></label>
+        <label for="crew-2">Pilotaje<input type="text" id="crew-2" placeholder="Tripulante 3" autocomplete="off"></label>
+        <label for="crew-3">Ciencia<input type="text" id="crew-3" placeholder="Tripulante 4" autocomplete="off"></label>
+      </div>
+      <h3>Reglas</h3>
+      <ul class="rules">
+        <li>Empiezan con <b>100% de combustible</b>. Cada respuesta incorrecta gasta <b>15%</b>; cada pista, <b>10%</b>.</li>
+        <li>Respuesta correcta al primer intento: <b>200 puntos</b>. Cada error resta 50 (mínimo 50) y cada pista resta 30.</li>
+        <li>Al final, cada punto de combustible que sobre vale <b>3 puntos</b> extra.</li>
+        <li><b>Victoria:</b> completar las 5 fases sin quedarse sin combustible. Con 0% la misión fracasa.</li>
+        <li>Los valores cambian en cada partida: no sirve memorizar respuestas.</li>
+        <li>Pueden escribir decimales con coma (2,5) o fracciones (5/2).</li>
+      </ul>
+      <button class="primary" type="submit" id="start">Despegar</button>
+    </form>
+  </section>
+
+  <!-- JUEGO -->
+  <section class="game" id="game" hidden>
+    <div class="stage">
+      <canvas id="cv" role="img" aria-label="Visor de la nave"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="panel">
+      <p class="eyebrow" id="ph-eyebrow">Fase 1 de 5</p>
+      <h2 id="ph-title">Despegue</h2>
+      <p class="turn" id="ph-turn"></p>
+      <p id="ph-story"></p>
+      <div class="question" id="ph-question"></div>
+      <form class="answer" id="answer-form" autocomplete="off">
+        <div class="fields" id="fields"></div>
+        <div class="actions">
+          <button class="primary" type="submit" id="check">Verificar cálculo</button>
+          <button class="ghost" type="button" id="hint-btn">Pedir pista (−10%)</button>
+        </div>
+      </form>
+      <div id="feedback" role="status" aria-live="polite"></div>
+      <div class="box" id="hint" hidden><h3>Pista de la base</h3><p id="hint-text"></p></div>
+      <div class="box" id="explain" hidden><h3>Bitácora de cálculo</h3><p id="explain-text"></p></div>
+      <div class="box dec" id="decision" hidden><h3>Decisión de la tripulación</h3><p id="decision-text"></p></div>
+      <div class="actions"><button class="primary" type="button" id="next" hidden>Siguiente fase</button></div>
+      <details><summary>Ver reglas</summary>
+        <p style="margin-top:8px">Error: −15% combustible. Pista: −10%. Puntos por fase: 200 − 50 por error (mínimo 50) − 30 por pista. Bono final: combustible × 3. Ganan al completar las 5 fases con combustible mayor que 0.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- FINAL -->
+  <section class="end" id="end" hidden>
+    <p class="eyebrow" id="end-eyebrow">Informe de misión</p>
+    <h1 id="end-title">Aterrizaje confirmado</h1>
+    <p class="rank" id="end-rank"></p>
+    <p id="end-text" style="max-width:62ch"></p>
+    <div class="totals" id="totals"></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Fase</th><th>Tema</th><th>Responsable</th><th>Intentos</th><th>Pistas</th><th>Tiempo</th><th>Puntos</th></tr></thead>
+      <tbody id="log-body"></tbody>
+    </table></div>
+    <div class="actions">
+      <button class="primary" type="button" id="again">Nueva misión</button>
+      <button class="ghost" type="button" id="change-crew">Cambiar tripulación</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const C={space1:'#03100a',space2:'#020604',grid:'rgba(76,255,154,.10)',axis:'rgba(76,255,154,.55)',tick:'#6fae8c',
+  curve:'#4cff9a',accent:'#ffb000',ok:'#4cff9a',bad:'#ff5a4f',fg:'#d8ffe9',faint:'rgba(255,176,0,.38)'};
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ---------- formato ---------- */
+function fmt(n){const r=Math.round(n*100)/100;const s=String(Math.abs(r)).replace('.',',');return (r<0?'−':'')+s}
+function fmtPoly(c,v){const n=c.length-1;let s='';
+  c.forEach((k,i)=>{if(k===0)return;const d=n-i,abs=Math.abs(k);
+    const co=(abs===1&&d>0)?'':fmt(abs);
+    const term=d===0?co:d===1?co+v:co+v+'<sup>'+d+'</sup>';
+    s+= s===''?(k<0?'−':'')+term:(k<0?' − ':' + ')+term;});
+  return s||'0'}
+function parseNum(str){let s=String(str).trim().replace(/−/g,'-').replace(/\s/g,'').replace(',','.');
+  if(s==='')return NaN;
+  if(/^-?\d+(\.\d+)?\/-?\d+(\.\d+)?$/.test(s)){const [a,b]=s.split('/').map(Number);return b===0?NaN:a/b}
+  if(/^-?\d*\.?\d+$/.test(s))return Number(s);return NaN}
+const close=(a,b)=>Math.abs(a-b)<=0.01*Math.max(1,Math.abs(b));
+function mmss(sec){const m=Math.floor(sec/60),s=Math.round(sec%60);return m+':'+String(s).padStart(2,'0')}
+
+/* ---------- parámetros aleatorios ---------- */
+const P={};
+function newMission(){
+  const a=R(2,5),b=R(1,6),t1=R(1,2),t2=t1+R(2,3),t0=R(2,6);
+  let qa,qb,qc,x0,m;
+  do{qa=pick([1,-1]);qb=R(-3,3);qc=qa>0?R(-2,3):R(4,10);x0=R(1,3);m=2*qa*x0+qb}while(m===0);
+  const f=x=>qa*x*x+qb*x+qc, k=f(x0)-m*x0, xs=x0+R(2,4), ys=m*xs+k;
+  const p=R(2,6),q=R(1,9);let t4=R(1,5);if(6*t4-2*p===0)t4++;
+  const vs=pick([4,5,6,8,10]),B=R(1,3),A=B*vs*vs;
+  Object.assign(P,{a,b,t1,t2,t0,h:t=>a*t*t+b*t,v0:2*a*t0+b,
+    qa,qb,qc,x0,m,f,k,xs,ys,p,q,t4,s:t=>t*t*t-p*t*t+q*t,acc:6*t4-2*p,vel4:3*t4*t4-2*p*t4+q,
+    vs,B,A,Cf:v=>A/v+B*v});
+  P.vreq=P.v0-R(1,3);
+}
+
+/* ---------- canvas ---------- */
+const cv=$('cv'),ctx=cv.getContext('2d');let CW=0,CH=0;
+const STARS=Array.from({length:110},()=>({x:Math.random(),y:Math.random(),r:Math.random()<.15?2:1,a:.25+Math.random()*.6}));
+const ROCKS=Array.from({length:14},()=>({x:Math.random(),y:Math.random(),r:3+Math.random()*7}));
+function sizeCanvas(){const r=cv.getBoundingClientRect();if(!r.width)return;const d=window.devicePixelRatio||1;CW=r.width;CH=r.height;cv.width=Math.round(CW*d);cv.height=Math.round(CH*d);ctx.setTransform(d,0,0,d,0,0)}
+function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p}
+function fmtTick(v){return fmt(Math.abs(v)<1e-9?0:v)}
+
+function drawShip(px,py,ang,s){s=s||1;ctx.save();ctx.translate(px,py);ctx.rotate(ang);ctx.scale(s,s);
+  ctx.fillStyle=C.accent;ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-21,-4.5);ctx.lineTo(-16,0);ctx.lineTo(-21,4.5);ctx.closePath();ctx.fill();
+  ctx.fillStyle=C.fg;ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(-10,-8);ctx.lineTo(-6,0);ctx.lineTo(-10,8);ctx.closePath();ctx.fill();
+  ctx.fillStyle=C.curve;ctx.beginPath();ctx.arc(3,0,2.6,0,7);ctx.fill();ctx.restore()}
+function drawStation(px,py){ctx.save();ctx.translate(px,py);ctx.strokeStyle=C.fg;ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(0,0,10,0,7);ctx.stroke();ctx.fillStyle=C.curve;ctx.fillRect(-24,-3,12,6);ctx.fillRect(12,-3,12,6);
+  ctx.fillStyle=C.fg;ctx.beginPath();ctx.arc(0,0,3,0,7);ctx.fill();ctx.restore()}
+
+function plot(o){
+  if(!CW)sizeCanvas();
+  const L=48,Rm=14,T=14,Bm=36,W=CW-L-Rm,H=CH-T-Bm;
+  const [x0,x1]=o.x,[y0,y1]=o.y;
+  const X=x=>L+(x-x0)/(x1-x0)*W, Y=y=>T+H-(y-y0)/(y1-y0)*H;
+  const kx=W/(x1-x0),ky=H/(y1-y0);
+  const ang=m=>Math.atan2(-m*ky,kx);
+  ctx.clearRect(0,0,CW,CH);
+  const g=ctx.createLinearGradient(0,0,0,CH);g.addColorStop(0,C.space1);g.addColorStop(1,C.space2);ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
+  STARS.forEach(s=>{ctx.globalAlpha=s.a;ctx.fillStyle='#7dffb5';ctx.fillRect(s.x*CW,s.y*CH,s.r,s.r)});ctx.globalAlpha=1;
+  if(o.planet){ctx.save();ctx.globalAlpha=.55;const pg=ctx.createRadialGradient(CW*.82,CH*1.05,10,CW*.82,CH*1.05,CH*.55);pg.addColorStop(0,'#1f5c3c');pg.addColorStop(1,'#06140d');ctx.fillStyle=pg;ctx.beginPath();ctx.arc(CW*.82,CH*1.05,CH*.5,0,7);ctx.fill();ctx.restore()}
+  if(o.rocks){ctx.fillStyle='rgba(111,174,140,.22)';ROCKS.forEach(r=>{ctx.beginPath();ctx.arc(L+r.x*W,T+r.y*H,r.r,0,7);ctx.fill()})}
+  const sx=niceStep((x1-x0)/6),sy=niceStep((y1-y0)/5);
+  ctx.font='11px "IBM Plex Mono", Consolas, monospace';ctx.lineWidth=1;
+  for(let v=Math.ceil(x0/sx)*sx;v<=x1+1e-9;v+=sx){const px=X(v);ctx.strokeStyle=C.grid;ctx.beginPath();ctx.moveTo(px,T);ctx.lineTo(px,T+H);ctx.stroke();ctx.fillStyle=C.tick;ctx.textAlign='center';ctx.fillText(fmtTick(v),px,T+H+15)}
+  for(let v=Math.ceil(y0/sy)*sy;v<=y1+1e-9;v+=sy){const py=Y(v);ctx.strokeStyle=C.grid;ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(L+W,py);ctx.stroke();ctx.fillStyle=C.tick;ctx.textAlign='right';ctx.fillText(fmtTick(v),L-6,py+4)}
+  ctx.strokeStyle=C.axis;ctx.lineWidth=1.2;
+  if(y0<=0&&y1>=0){ctx.beginPath();ctx.moveTo(L,Y(0));ctx.lineTo(L+W,Y(0));ctx.stroke()}
+  if(x0<=0&&x1>=0){ctx.beginPath();ctx.moveTo(X(0),T);ctx.lineTo(X(0),T+H);ctx.stroke()}
+  ctx.fillStyle=C.tick;ctx.textAlign='right';ctx.fillText(o.xl,L+W,T+H+30);ctx.textAlign='left';ctx.fillText(o.yl,L+6,T+14);
+  ctx.save();ctx.beginPath();ctx.rect(L,T,W,H);ctx.clip();
+  (o.lines||[]).forEach(l=>{ctx.strokeStyle=l.color;ctx.lineWidth=l.w||2;ctx.setLineDash(l.dash||[]);ctx.beginPath();ctx.moveTo(X(x0),Y(l.y0+l.m*(x0-l.x0)));ctx.lineTo(X(x1),Y(l.y0+l.m*(x1-l.x0)));ctx.stroke()});
+  ctx.setLineDash([]);
+  (o.fns||[]).forEach(fn=>{ctx.strokeStyle=fn.color;ctx.lineWidth=fn.w||2.5;ctx.beginPath();let st=false;
+    for(let i=0;i<=300;i++){const x=x0+(x1-x0)*i/300,y=fn.f(x);if(!isFinite(y)){st=false;continue}const py=Math.max(-1e4,Math.min(1e4,Y(y)));if(!st){ctx.moveTo(X(x),py);st=true}else ctx.lineTo(X(x),py)}ctx.stroke()});
+  (o.pts||[]).forEach(p=>{ctx.fillStyle=p.color||C.fg;ctx.beginPath();ctx.arc(X(p.x),Y(p.y),p.r||5,0,7);ctx.fill();
+    if(p.label){ctx.fillStyle=C.fg;ctx.font='12px "IBM Plex Mono", Consolas, monospace';ctx.textAlign='left';ctx.fillText(p.label,X(p.x)+9,Y(p.y)+(p.above?-9:19))}});
+  if(o.station)drawStation(X(o.station.x),Y(o.station.y));
+  if(o.ship)drawShip(X(o.ship.x),Y(o.ship.y),ang(o.ship.m),1);
+  ctx.restore();
+}
+
+/* ---------- fases ---------- */
+const PHASES=[
+{title:'Despegue desde la base Cauchy',topic:'Razón de cambio promedio',role:'Propulsión',crew:0,
+ legend:[[C.curve,'altura h(t)'],[C.accent,'recta secante']],
+ story:()=>`La <i>Leibniz-1</i> acaba de despegar. El altímetro registra <span class="fx">h(t) = ${fmtPoly([P.a,P.b,0],'t')}</span> km, con t en minutos. Control de misión necesita confirmar el rendimiento del motor entre t = ${P.t1} y t = ${P.t2} min.`,
+ question:()=>`¿Cuál es la razón de cambio promedio de la altura en el intervalo [${P.t1}, ${P.t2}]?`,
+ inputs:[['Velocidad promedio (km/min)']],
+ answer:()=>[(P.h(P.t2)-P.h(P.t1))/(P.t2-P.t1)],
+ hint:()=>`La razón de cambio promedio es la pendiente de la recta secante: <span class="fx">[h(t₂) − h(t₁)] / (t₂ − t₁)</span>. Evalúa h en cada extremo del intervalo.`,
+ explain:()=>{const h1=P.h(P.t1),h2=P.h(P.t2);return `h(${P.t2}) = ${fmt(h2)} km y h(${P.t1}) = ${fmt(h1)} km.<br>Razón promedio = (${fmt(h2)} − ${fmt(h1)}) / (${P.t2} − ${P.t1}) = <b>${fmt((h2-h1)/(P.t2-P.t1))} km/min</b>. Es la pendiente de la secante que une los dos puntos.`},
+ decision:()=>`El motor sube al ritmo previsto: en promedio gana ${fmt((P.h(P.t2)-P.h(P.t1))/(P.t2-P.t1))} km por minuto. Control autoriza continuar el ascenso.`,
+ draw:st=>{const tm=Math.max(P.t2,P.t0)+1,avg=(P.h(P.t2)-P.h(P.t1))/(P.t2-P.t1);
+   plot({x:[0,tm],y:[0,P.h(tm)*1.08],xl:'t (min)',yl:'h (km)',fns:[{f:P.h,color:C.curve}],
+     lines:[{x0:P.t1,y0:P.h(P.t1),m:avg,color:st.solved?C.accent:C.faint,dash:st.solved?[]:[6,5],w:2}],
+     pts:[{x:P.t1,y:P.h(P.t1),label:'t₁ = '+P.t1},{x:P.t2,y:P.h(P.t2),label:'t₂ = '+P.t2}],
+     ship:{x:P.t2,y:P.h(P.t2),m:2*P.a*P.t2+P.b}})}},
+{title:'Ventana de órbita',topic:'Derivada: velocidad instantánea',role:'Navegación',crew:1,
+ legend:[[C.curve,'altura h(t)'],[C.faint,'secantes (Δt → 0)'],[C.accent,'recta tangente']],
+ story:()=>`Para entrar en órbita, la nave debe ir a más de ${P.vreq} km/min justo en t = ${P.t0} min. El promedio ya no sirve: el computador necesita la <b>velocidad instantánea</b>. La altura sigue siendo <span class="fx">h(t) = ${fmtPoly([P.a,P.b,0],'t')}</span>.`,
+ question:()=>`Calcula v(${P.t0}) = h′(${P.t0}).`,
+ inputs:[['Velocidad instantánea (km/min)']],
+ answer:()=>[P.v0],
+ hint:()=>`La derivada es el límite de las pendientes secantes cuando Δt → 0. Con la regla de la potencia: <span class="fx">d/dt(t<sup>n</sup>) = n·t<sup>n−1</sup></span>. Deriva h(t) y evalúa en t = ${P.t0}.`,
+ explain:()=>`h′(t) = ${fmtPoly([2*P.a,P.b],'t')}<br>v(${P.t0}) = ${2*P.a}·${P.t0} + ${P.b} = <b>${fmt(P.v0)} km/min</b>. En el visor, las secantes se acercan a la recta tangente, cuya pendiente es justamente ${fmt(P.v0)}.`,
+ decision:()=>`La órbita exige más de ${P.vreq} km/min. Como v(${P.t0}) = ${fmt(P.v0)} > ${P.vreq}, la nave entra en órbita y la tripulación apaga el motor principal para ahorrar combustible.`,
+ draw:st=>{const tm=Math.max(P.t0+3,P.t2+1),t0=P.t0,y0=P.h(t0);
+   const lines=[2,1,.5].map(d=>({x0:t0,y0,m:(P.h(t0+d)-y0)/d,color:C.faint,w:1.2,dash:[4,4]}));
+   if(st.solved)lines.push({x0:t0,y0,m:P.v0,color:C.accent,w:2.5});
+   plot({x:[0,tm],y:[0,P.h(tm)*1.08],xl:'t (min)',yl:'h (km)',fns:[{f:P.h,color:C.curve}],lines,
+     pts:[{x:t0,y:y0,label:'t = '+t0}],ship:{x:t0,y:y0,m:P.v0}})}},
+{title:'Acoplamiento con la estación Euler',topic:'Ecuación de la recta tangente',role:'Pilotaje',crew:2,
+ legend:[[C.curve,'trayectoria f(x)'],[C.accent,'recta tangente'],[C.bad,'tu intento']],
+ story:()=>`La nave describe la trayectoria <span class="fx">y = f(x) = ${fmtPoly([P.qa,P.qb,P.qc],'x')}</span> (miles de km). En el punto P(${P.x0}, ${fmt(P.f(P.x0))}) apagará los motores y seguirá en línea recta por inercia, es decir, por la <b>recta tangente</b>. La estación Euler está sobre esa recta.`,
+ question:()=>`Programa la ruta: escribe la recta tangente a f en x = ${P.x0} como y = m·x + b.`,
+ inputs:[['Pendiente m'],['Intercepto b']],
+ answer:()=>[P.m,P.k],
+ hint:()=>`La pendiente es <span class="fx">m = f′(${P.x0})</span>. Luego usa la forma punto-pendiente <span class="fx">y − y₀ = m(x − x₀)</span> y despeja b.`,
+ explain:()=>`f′(x) = ${fmtPoly([2*P.qa,P.qb],'x')}, así que m = f′(${P.x0}) = <b>${fmt(P.m)}</b>.<br>y − ${fmt(P.f(P.x0))} = ${fmt(P.m)}(x − ${P.x0}) &nbsp;⇒&nbsp; <b>y = ${fmtPoly([P.m,P.k],'x')}</b>.<br>Comprobación: con x = ${P.xs}, y = ${fmt(P.ys)}, que es la posición de la estación.`,
+ decision:()=>`Ruta inercial programada. La nave avanza por la tangente sin gastar combustible y se acopla a la estación Euler en (${P.xs}, ${fmt(P.ys)}).`,
+ draw:st=>{const xa=P.x0-3,xb=P.xs+1.5;let lo=Infinity,hi=-Infinity;
+   for(let i=0;i<=60;i++){const x=xa+(xb-xa)*i/60;[P.f(x),P.m*x+P.k].forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v)})}
+   const pad=(hi-lo)*.12||2;const lines=[];
+   if(st.user&&!st.solved)lines.push({x0:0,y0:st.user[1],m:st.user[0],color:C.bad,w:2,dash:[7,5]});
+   if(st.solved)lines.push({x0:P.x0,y0:P.f(P.x0),m:P.m,color:C.accent,w:2.5});
+   const d=st.dock||0,sx=P.x0+(P.xs-P.x0)*d;
+   plot({x:[xa,xb],y:[lo-pad,hi+pad],xl:'x (miles de km)',yl:'y',fns:[{f:P.f,color:C.curve}],lines,
+     pts:[{x:P.x0,y:P.f(P.x0),label:'P'}],station:{x:P.xs,y:P.ys},
+     ship:st.solved?{x:sx,y:P.m*sx+P.k,m:P.m}:{x:P.x0,y:P.f(P.x0),m:P.m}})}},
+{title:'Cinturón de asteroides',topic:'Segunda derivada: aceleración',role:'Ciencia',crew:3,
+ legend:[[C.curve,'posición s(t)'],[C.accent,'tangente: pendiente = v(t)']],
+ story:()=>`Dentro del cinturón, la posición sobre la ruta es <span class="fx">s(t) = ${fmtPoly([1,-P.p,P.q,0],'t')}</span> (km, t en segundos). Los escudos se configuran distinto si la nave acelera o si frena. El equipo de ciencia necesita la <b>aceleración</b> en t = ${P.t4} s.`,
+ question:()=>`Calcula a(${P.t4}) = s″(${P.t4}).`,
+ inputs:[['Aceleración (km/s²)']],
+ answer:()=>[P.acc],
+ hint:()=>`Deriva dos veces: <span class="fx">v(t) = s′(t)</span> y <span class="fx">a(t) = v′(t) = s″(t)</span>. Luego evalúa en t = ${P.t4}.`,
+ explain:()=>`v(t) = s′(t) = ${fmtPoly([3,-2*P.p,P.q],'t')}<br>a(t) = s″(t) = ${fmtPoly([6,-2*P.p],'t')}<br>a(${P.t4}) = 6·${P.t4} − ${2*P.p} = <b>${fmt(P.acc)} km/s²</b>. La pendiente de la tangente en el visor es v(${P.t4}) = ${fmt(P.vel4)} km/s.`,
+ decision:()=>P.acc>0?`a(${P.t4}) > 0: la velocidad está aumentando. Se refuerzan los escudos frontales para resistir los impactos de frente.`:`a(${P.t4}) < 0: la nave está frenando. Se pasa energía a los escudos traseros para protegerse de los fragmentos que vienen detrás.`,
+ draw:st=>{const tb=P.t4+2;let lo=Infinity,hi=-Infinity;for(let i=0;i<=80;i++){const v=P.s(tb*i/80);lo=Math.min(lo,v);hi=Math.max(hi,v)}
+   const pad=(hi-lo)*.12||2;const y4=P.s(P.t4);
+   plot({x:[0,tb],y:[Math.min(0,lo)-pad,hi+pad],xl:'t (s)',yl:'s (km)',rocks:true,fns:[{f:P.s,color:C.curve}],
+     lines:st.solved?[{x0:P.t4,y0:y4,m:P.vel4,color:C.accent,w:2.5}]:[],
+     pts:[{x:P.t4,y:y4,label:'t = '+P.t4}],ship:{x:P.t4,y:y4,m:P.vel4}})}},
+{title:'Aterrizaje en Kepler-Δ',topic:'Optimización: mínimo de una función',role:'Comandancia',crew:-1,
+ legend:[[C.curve,'consumo C(v)'],[C.accent,'tangente horizontal en el mínimo']],
+ story:()=>`Último tramo. El combustible que gasta el descenso depende de la velocidad v (km/min): <span class="fx">C(v) = ${P.A}/v + ${P.B===1?'':P.B}v</span>. Si bajan muy despacio, los propulsores gastan sosteniendo la nave; si bajan muy rápido, el frenado final cuesta caro.`,
+ question:()=>`¿Qué velocidad v > 0 hace mínimo el consumo C(v)?`,
+ inputs:[['Velocidad óptima v (km/min)']],
+ answer:()=>[P.vs],
+ hint:()=>`En un mínimo, la recta tangente es horizontal: <span class="fx">C′(v) = 0</span>. Recuerda que A/v = A·v<sup>−1</sup>, cuya derivada es −A/v².`,
+ explain:()=>`C′(v) = −${P.A}/v² + ${P.B}. Igualando a 0: v² = ${P.A}/${P.B} = ${P.vs*P.vs} ⇒ <b>v = ${P.vs} km/min</b>.<br>C″(v) = ${2*P.A}/v³ > 0 para v > 0, así que es un <b>mínimo</b>. Consumo mínimo: C(${P.vs}) = ${fmt(P.Cf(P.vs))} unidades.`,
+ decision:()=>`La comandancia fija el descenso a ${P.vs} km/min. Bajar más lento o más rápido gastaría más combustible: por ejemplo, C(${P.vs/2}) = ${fmt(P.Cf(P.vs/2))} y C(${P.vs*2}) = ${fmt(P.Cf(P.vs*2))}.`,
+ draw:st=>{const va=P.vs*.25,vb=P.vs*3,cm=P.Cf(P.vs);
+   plot({x:[0,vb],y:[0,P.Cf(va)*1.05],xl:'v (km/min)',yl:'C (unidades)',planet:true,fns:[{f:v=>v<va*.98?NaN:P.Cf(v),color:C.curve}],
+     lines:st.solved?[{x0:P.vs,y0:cm,m:0,color:C.accent,w:2.5}]:[],
+     pts:st.solved?[{x:P.vs,y:cm,color:C.accent,label:'mínimo',above:true}]:[]})}}
+];
+
+/* ---------- estado ---------- */
+const S={crew:['','','',''],phase:0,fuel:100,score:0,log:[],cur:null};
+function crewName(i){return i<0?'Toda la tripulación':(S.crew[i]||('Tripulante '+(i+1)))}
+function render(){if(!$('game').hidden)PHASES[S.phase].draw(S.cur)}
+function hud(){$('hud-phase').textContent=(Math.min(S.phase+1,5))+' / 5';$('hud-score').textContent=S.score;$('hud-fuel-n').textContent=S.fuel;
+  $('fuel-bar').style.width=S.fuel+'%';$('fuel').classList.toggle('low',S.fuel<30)}
+function feedback(cls,html){$('feedback').innerHTML=html?`<div class="msg ${cls}">${html}</div>`:''}
+
+function startMission(){newMission();Object.assign(S,{phase:0,fuel:100,score:0,log:[]});
+  $('intro').hidden=true;$('end').hidden=true;$('game').hidden=false;$('hud').hidden=false;showPhase()}
+function showPhase(){const ph=PHASES[S.phase];S.cur={wrong:0,hints:0,start:Date.now(),solved:false,user:null,dock:0};
+  $('ph-eyebrow').textContent=`Fase ${S.phase+1} de 5 · ${ph.topic}`;$('ph-title').textContent=ph.title;
+  $('ph-turn').innerHTML=`${ph.role} · turno de <b></b>`;$('ph-turn').querySelector('b').textContent=crewName(ph.crew);
+  $('ph-story').innerHTML=ph.story();$('ph-question').innerHTML=ph.question();
+  $('fields').innerHTML=ph.inputs.map((inp,i)=>`<label for="ans-${i}">${inp[0]}<input type="text" id="ans-${i}" inputmode="decimal" autocomplete="off"></label>`).join('');
+  $('legend').innerHTML=ph.legend.map(l=>`<span><i style="background:${l[0]}"></i>${l[1]}</span>`).join('');
+  cv.setAttribute('aria-label','Visor: '+ph.title);
+  ['hint','explain','decision','next'].forEach(id=>$(id).hidden=true);
+  $('check').disabled=false;$('hint-btn').disabled=S.fuel<=10;feedback('',''); hud();
+  sizeCanvas();render();
+  const first=$('ans-0');if(first)first.focus({preventScroll:true});
+}
+function phasePoints(){return Math.max(20,Math.max(50,200-50*S.cur.wrong)-30*S.cur.hints)}
+
+$('crew-form').addEventListener('submit',e=>{e.preventDefault();S.crew=[0,1,2,3].map(i=>$('crew-'+i).value.trim());startMission()});
+
+$('answer-form').addEventListener('submit',e=>{e.preventDefault();if(S.cur.solved)return;
+  const ph=PHASES[S.phase],ans=ph.answer();
+  const vals=ph.inputs.map((_,i)=>parseNum($('ans-'+i).value));
+  if(vals.some(v=>isNaN(v))){feedback('info','Escribe un número en cada casilla. Puedes usar coma decimal (2,5) o fracciones (5/2).');return}
+  const ok=vals.map((v,i)=>close(v,ans[i]));
+  if(ok.every(Boolean)){
+    S.cur.solved=true;const pts=phasePoints();S.score+=pts;
+    S.log.push({n:S.phase+1,topic:ph.topic,who:crewName(ph.crew),tries:S.cur.wrong+1,hints:S.cur.hints,time:(Date.now()-S.cur.start)/1000,pts});
+    feedback('ok',`Cálculo correcto. +${pts} puntos.`);
+    $('explain-text').innerHTML=ph.explain();$('decision-text').innerHTML=ph.decision();
+    $('explain').hidden=false;$('decision').hidden=false;$('check').disabled=true;$('hint-btn').disabled=true;
+    $('next').textContent=S.phase===4?'Ver informe de misión':'Siguiente fase';$('next').hidden=false;
+    hud();
+    if(S.phase===2&&!reduce){const t0=performance.now();const step=now=>{S.cur.dock=Math.min(1,(now-t0)/1700);render();if(S.cur.dock<1&&S.cur.solved)requestAnimationFrame(step)};requestAnimationFrame(step)}
+    else{S.cur.dock=1;render()}
+    $('next').focus({preventScroll:true});
+  }else{
+    S.cur.wrong++;S.fuel=Math.max(0,S.fuel-15);if(S.phase===2)S.cur.user=vals;
+    let extra='';
+    if(ph.inputs.length===2){extra=ok[0]&&!ok[1]?' La pendiente m es correcta: revisa el intercepto b.':!ok[0]&&ok[1]?' El intercepto está bien, pero la pendiente no.':''}
+    hud();render();
+    if(S.fuel<=0){feedback('bad','Sin combustible.');setTimeout(()=>endGame(false),900);return}
+    feedback('bad',`Cálculo incorrecto: −15% de combustible.${extra}`);
+    $('hint-btn').disabled=S.fuel<=10||S.cur.hints>0;
+  }});
+
+$('hint-btn').addEventListener('click',()=>{if(S.cur.solved||S.cur.hints>0||S.fuel<=10)return;
+  S.cur.hints++;S.fuel-=10;hud();$('hint-text').innerHTML=PHASES[S.phase].hint();$('hint').hidden=false;$('hint-btn').disabled=true;
+  feedback('info','Pista recibida: −10% de combustible.')});
+
+$('next').addEventListener('click',()=>{S.phase++;if(S.phase>=5)endGame(true);else{showPhase();window.scrollTo({top:0,behavior:reduce?'auto':'smooth'})}});
+
+function endGame(won){
+  $('game').hidden=true;$('end').hidden=false;hud();
+  const bonus=won?S.fuel*3:0,total=S.score+bonus;
+  $('end-eyebrow').textContent=won?'Informe de misión · éxito':'Informe de misión · fallida';
+  $('end-title').textContent=won?'Aterrizaje confirmado en Kepler-Δ':'La Leibniz-1 se quedó sin combustible';
+  const rank=!won?'Misión fallida':total>=1100?'Rango: Comandante de flota':total>=800?'Rango: Piloto estelar':total>=500?'Rango: Navegante':'Rango: Cadete';
+  $('end-rank').textContent=rank;
+  $('end-text').textContent=won?`La tripulación completó las 5 fases calculando a mano cada derivada. Sobró ${S.fuel}% de combustible, que suma ${bonus} puntos de bono.`:`La nave quedó a la deriva en la fase ${S.phase+1}. Repasen la pista de esa fase y vuelvan a intentarlo: los valores cambian en cada misión.`;
+  $('totals').innerHTML=`<div><span class="k">Puntos por fases</span><b>${S.score}</b></div><div><span class="k">Combustible restante</span><b>${S.fuel}%</b></div><div><span class="k">Bono</span><b>${bonus}</b></div><div><span class="k">Puntaje total</span><b>${total}</b></div>`;
+  const tb=$('log-body');tb.innerHTML='';
+  S.log.forEach(r=>{const tr=document.createElement('tr');
+    [r.n,r.topic,r.who,r.tries,r.hints,mmss(r.time),r.pts].forEach((v,i)=>{const td=document.createElement('td');td.textContent=v;if([0,3,4,5,6].includes(i))td.className='n';tr.appendChild(td)});tb.appendChild(tr)});
+  if(!S.log.length)tb.innerHTML='<tr><td colspan="7" class="muted">No se completó ninguna fase.</td></tr>';
+}
+$('again').addEventListener('click',startMission);
+$('change-crew').addEventListener('click',()=>{$('end').hidden=true;$('hud').hidden=true;$('intro').hidden=false;window.scrollTo(0,0)});
+
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{sizeCanvas();render()},80)});
+})();
+</script>
+
+</body>
+</html>
